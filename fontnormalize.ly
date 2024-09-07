@@ -31,53 +31,73 @@
              dimen-val)))
      
      (define (font-adjustment font)
-       (unless (assq-ref (cdr font) 'size-correction)
-         (let* ((dimen (car (assq-ref (cdr font) 'normalize-to)))
-                (reference (cdr (assq-ref (cdr font) 'normalize-to)))
-                (my-size (get-font-dimen font dimen))
-                (ref-size (if (symbol? reference)
-                              (get-font-dimen (or (assq reference font-adjustments)
-                                                  (and (set! font-adjustments 
-                                                             (acons reference '() font-adjustments))
-                                                       (assq reference font-adjustments)))
-                                              dimen)
-                              reference))
-                (size-correction (magnification->font-size (/ ref-size my-size))))
-           (set-cdr! font (acons 'size-correction size-correction (cdr font))))))
+       (and-let* (((not (assq-ref (cdr font) 'size-correction)))
+                  (normalize-to (assq-ref (cdr font) 'normalize-to))
+                  (dimen (car normalize-to))
+                  (reference (cdr normalize-to))
+                  (my-size (get-font-dimen font dimen))
+                  (ref-size (if (symbol? reference)
+                                (get-font-dimen (or (assq reference font-adjustments)
+                                                    (and (set! font-adjustments 
+                                                               (acons reference '() font-adjustments))
+                                                         (assq reference font-adjustments)))
+                                                dimen)
+                                reference))
+              (size-correction (magnification->font-size (/ ref-size my-size))))
+           (set-cdr! font (acons 'size-correction size-correction (cdr font)))))
      
      (for-each font-adjustment font-adjustments)
      (ly:output-def-set-variable! layout 'font-adjustments font-adjustments)
-     (ly:message "~a" (ly:output-def-lookup layout 'font-adjustments))
+ ;     (ly:message "~a" (ly:output-def-lookup layout 'font-adjustments))
      ))
 
 #(define (normalize-size layout props arg)
    (or (and-let* ((font-family (chain-assoc-get 'font-family props 'serif))
                   (adjustments (assq-ref (ly:output-def-lookup layout 'font-adjustments) font-family))
                   (correction (assq-ref adjustments 'size-correction)))
-         (make-fontsize-markup correction arg))
+         (markup #:fontsize correction arg))
        arg))
 
-normalizeFonts = \with {
-  \applyContext #init-font-size-adjustments
-}
+#(define (select-variant-and-normalize layout props arg)
+   (or (and-let* ((base-size (ly:output-def-lookup layout 'text-font-size))
+                  (fsize (chain-assoc-get 'font-size props 0))
+                  (pt-size (* base-size (magstep fsize)))
+                  (font-family (chain-assoc-get 'font-family props 'serif))
+                  (adjustments (assq-ref (ly:output-def-lookup layout 'font-adjustments) font-family))
+                  (optical-sizes (assq-ref adjustments 'optical-sizes))
+                  (this-size (assoc pt-size optical-sizes (lambda (key alistcar)
+                                                            (and (< (car alistcar) key)
+                                                                 (<= key (cdr alistcar))))))
+                  (optical-family (symbol-append font-family '- (cdr this-size))))
+              (normalize-size layout 
+                              (prepend-alist-chain 'font-family optical-family props)
+                              (markup #:override `(font-family . ,optical-family) arg)))
+       (normalize-size layout props arg)))
 
-\paper {
-  property-defaults.string-transformers = #`(,normalize-size
-                                             ,ly:perform-text-replacements)
-  property-defaults.fonts.serif = "Arno Pro SmText"
-}
-
-
-
-\score {
-  { c'1^\markup "bar" }
-  \layout {
-    font-adjustments.serif.normalize-to = #'(x-height . default-serif)
-    \context {
-      \Score
-      \normalizeFonts
-    }
+\layout {
+  \context {
+    \Global
+    \applyContext #init-font-size-adjustments
   }
 }
 
-{ c'1^\markup\override #'(fonts . ((serif . "LilyPond Serif"))) "bar" }
+\paper {
+  property-defaults.string-transformers = #`(,select-variant-and-normalize
+                                             ,ly:perform-text-replacements)
+  property-defaults.fonts.serif-caption = "Arno Pro Caption"
+  font-adjustments.serif-caption.normalize-to = #'(x-height . default-serif)
+  property-defaults.fonts.serif-small = "Arno Pro SmText"
+  font-adjustments.serif-small.normalize-to = #'(x-height . default-serif)
+  property-defaults.fonts.serif-subhead = "Arno Pro Subhead"
+  font-adjustments.serif-subhead.normalize-to = #'(x-height . default-serif)
+  property-defaults.fonts.serif-display = "Arno Pro Display"
+  font-adjustments.serif-display.normalize-to = #'(x-height . default-serif)
+  font-adjustments.serif.optical-sizes = #'(((-inf.0 . 8.5) . caption)
+                                            ((8.5 . 12.5) . small) ; should be 11
+                                            ((12.5 . 21.5) . subhead) ; should be 14
+                                            ((21.5 . +inf.0) . display))
+}
+
+% #(set-global-staff-size 11.3)
+
+{ c'1^\markup"bar" }
