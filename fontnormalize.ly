@@ -43,36 +43,38 @@
                                                          (assq reference font-adjustments)))
                                                 dimen)
                                 reference))
-              (size-correction (magnification->font-size (/ ref-size my-size))))
+                  (size-correction (magnification->font-size (/ ref-size my-size))))
            (set-cdr! font (acons 'size-correction size-correction (cdr font)))))
      
      (for-each font-adjustment font-adjustments)
      (ly:output-def-set-variable! layout 'font-adjustments font-adjustments)
- ;     (ly:message "~a" (ly:output-def-lookup layout 'font-adjustments))
+   ;   (ly:message "~a" (ly:output-def-lookup layout 'font-adjustments))
      ))
 
-#(define (normalize-size layout props arg)
-   (or (and-let* ((font-family (chain-assoc-get 'font-family props 'serif))
-                  (adjustments (assq-ref (ly:output-def-lookup layout 'font-adjustments) font-family))
+#(define-markup-command (normalize-size layout props arg) (markup?)
+   #:properties (fontsize-markup
+                 (font-family 'serif))
+   (or (and-let* ((adjustments (assq-ref (ly:output-def-lookup layout 'font-adjustments) font-family))
                   (correction (assq-ref adjustments 'size-correction)))
-         (markup #:fontsize correction arg))
-       arg))
+         (fontsize-markup layout props correction arg))
+       (interpret-markup layout props arg)))
 
-#(define (select-variant-and-normalize layout props arg)
+#(define-markup-command (select-optical-variant layout props arg) (markup?)
+   #:properties ((font-size 0)
+                 (font-family 'serif))
    (or (and-let* ((base-size (ly:output-def-lookup layout 'text-font-size))
-                  (fsize (chain-assoc-get 'font-size props 0))
-                  (pt-size (* base-size (magstep fsize)))
-                  (font-family (chain-assoc-get 'font-family props 'serif))
+                  (pt-size (* base-size (magstep font-size)))
                   (adjustments (assq-ref (ly:output-def-lookup layout 'font-adjustments) font-family))
                   (optical-sizes (assq-ref adjustments 'optical-sizes))
                   (this-size (assoc pt-size optical-sizes (lambda (key alistcar)
                                                             (and (< (car alistcar) key)
                                                                  (<= key (cdr alistcar))))))
                   (optical-family (symbol-append font-family '- (cdr this-size))))
-              (normalize-size layout 
-                              (prepend-alist-chain 'font-family optical-family props)
-                              (markup #:override `(font-family . ,optical-family) arg)))
-       (normalize-size layout props arg)))
+          (override-markup layout props `(font-family . ,optical-family) arg))
+       (interpret-markup layout props arg)))
+
+#(define (select-variant-and-normalize layout props arg)
+   (markup #:select-optical-variant #:normalize-size arg))
 
 \layout {
   \context {
