@@ -51,8 +51,7 @@
      ))
 
 #(define (normalize-size layout props arg)
-   (ly:message "~a" (chain-assoc-get 'font-family props))
-   (or (and-let* ((font-family (chain-assoc-get 'font-family props))
+   (or (and-let* ((font-family (chain-assoc-get 'font-family props 'serif))
                   (adjustments (assq-ref (ly:output-def-lookup layout 'font-adjustments) font-family))
                   (correction (assq-ref adjustments 'size-correction)))
          (make-fontsize-markup correction arg))
@@ -68,13 +67,17 @@ normalizeFonts = \with {
   property-defaults.fonts.serif = "Arno Pro SmText"
 }
 
-\layout {
-  font-adjustments.serif.normalize-to = #'(x-height . default-serif)
-  \context {
-    \Score
-    \normalizeFonts
+
+
+\score {
+  { c'1^\markup "bar" }
+  \layout {
+    font-adjustments.serif.normalize-to = #'(x-height . default-serif)
+    \context {
+      \Score
+      \normalizeFonts
+    }
   }
 }
 
-{ c'1^\markup\override #'(font-family . serif) "bar" }
 { c'1^\markup\override #'(fonts . ((serif . "LilyPond Serif"))) "bar" }
