@@ -19,7 +19,7 @@
   fonts-info.serif-subhead.normalize-to = #'(x-height . default-serif)
   property-defaults.fonts.serif-display = "Arno Pro Regular 36pt"
   fonts-info.serif-display.normalize-to = #'(x-height . default-serif)
-  fonts-info.serif.optical-sizes = #'(((-inf.0 . 8.5) . caption)
+  fonts-info.serif.optical-sizes = #'(((0 . 8.5) . caption)
                                       ((8.5 . 11) . small)
                                       ((11 . 14) . regular)
                                       ((14 . 21.5) . subhead)
