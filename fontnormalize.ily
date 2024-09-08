@@ -87,11 +87,13 @@ font-family, if it is defined."
    (markup?)
    #:category font
    #:properties ((font-size 0)
+                 (font-encoding 'latin1)
                  (font-family 'serif))
    "If fonts-info for the current font-family defines an optical-sizes alist,
 change the font-family to the appropriate optical size varient family, based on
 the current absolute font size."
-   (or (and-let* ((font-info (assq-ref (ly:output-def-lookup layout 'fonts-info)
+   (or (and-let* (((eq? font-encoding 'latin1))
+                  (font-info (assq-ref (ly:output-def-lookup layout 'fonts-info)
                                        font-family))
                   (optical-sizes (assq-ref font-info 'optical-sizes))
                   (base-size (ly:output-def-lookup layout 'text-font-size))
