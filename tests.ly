@@ -1,5 +1,5 @@
 \version "2.25.18"
-\include "fontnormalize.ly"
+\include "fontnormalize.ily"
 
 \layout {
   \context {
