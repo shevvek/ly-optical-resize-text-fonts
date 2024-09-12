@@ -117,7 +117,7 @@ the current absolute font size."
           (string-transformers (assq-ref property-defaults 'string-transformers)))
      (ly:output-def-set-variable! layout 'property-defaults
                                   (assq-set! property-defaults 'string-transformers 
-                                             (cons transformer string-transformers)))))
+                                             (lset-adjoin eq? string-transformers transformer)))))
      
 normalizeOpticalTextSizes = \with {
   \applyContext #init-font-size-corrections
