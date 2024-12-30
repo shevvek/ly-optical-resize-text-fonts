@@ -1,3 +1,21 @@
+%%  Add-on for GNU LilyPond: match size metrics between text font families,
+%%  and automatically substitute optical variants based on font size.
+%%
+%%  Copyright (C) 2024 Saul James Tobin.
+%%
+%%  This program is free software: you can redistribute it and/or modify
+%%  it under the terms of the GNU General Public License as published by
+%%  the Free Software Foundation, either version 3 of the License, or
+%%  (at your option) any later version.
+%%
+%%  This program is distributed in the hope that it will be useful,
+%%  but WITHOUT ANY WARRANTY; without even the implied warranty of
+%%  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%%  GNU General Public License for more details.
+%%
+%%  You should have received a copy of the GNU General Public License
+%%  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 \version "2.25.18"
 % -*- master: tests.ly;
 
@@ -28,7 +46,7 @@ that font-family's height to either the height of a reference font-family
 or directly to a reference height in staff spaces."
    (let* ((layout (ly:context-output-def layout-ctx))
           (fonts-info (ly:output-def-lookup layout 'fonts-info)))
-     
+
      (define (get-font-dimen font dimen)
        ;; Cache calculated font heights in that font's fonts-info entry
        (or (assq-ref (cdr font) dimen)
@@ -36,7 +54,7 @@ or directly to a reference height in staff spaces."
                   (dimen-val (dimen-proc layout (car font))))
              (set-cdr! font (acons dimen dimen-val (cdr font)))
              dimen-val)))
-     
+
      (define (set-correction! font)
        ;; If a correction was already calculated for this font, don't redo
        (and-let* (((not (assq-ref (cdr font) 'size-correction)))
@@ -54,7 +72,7 @@ or directly to a reference height in staff spaces."
                                  ;; if the reference font is missing from
                                  ;; fonts-info, add an empty entry and pass it
                                  (or (assq reference fonts-info)
-                                     (and (set! fonts-info 
+                                     (and (set! fonts-info
                                                 (acons reference '() fonts-info))
                                           (assq reference fonts-info)))
                                  dimen)
@@ -64,7 +82,7 @@ or directly to a reference height in staff spaces."
                                                                 my-size))))
            (set-cdr! font (acons 'size-correction size-correction
                                  (cdr font)))))
-     
+
      (for-each set-correction! fonts-info)
      (ly:output-def-set-variable! layout 'fonts-info fonts-info)
      (ly:debug (format #f "fonts-info: ~y"
@@ -116,9 +134,9 @@ the current absolute font size."
           (property-defaults (ly:output-def-lookup layout 'property-defaults))
           (string-transformers (assq-ref property-defaults 'string-transformers)))
      (ly:output-def-set-variable! layout 'property-defaults
-                                  (assq-set! property-defaults 'string-transformers 
+                                  (assq-set! property-defaults 'string-transformers
                                              (lset-adjoin eq? string-transformers transformer)))))
-     
+
 normalizeOpticalTextSizes = \with {
   \applyContext #init-font-size-corrections
   \applyContext #(add-default-string-transformer select-variant-and-normalize)
